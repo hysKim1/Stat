@@ -1,0 +1,29 @@
+
+/* ===  RS design Analysis with 3 factors === */
+
+data smell;
+input Odor T R H @@;
+cards;
+66 40 .3 4  39 120 .3 4  43 40 .7 4  49 120 .7 4 58 40 .5 2  17 120 .5 2  -5 40 .5 6  -40 120 .5 6
+65 80 .3 2  7 80 .7 2  43 80 .3 6  -22 80 .7 6 -31 80 .5 4  -35 80 .5 4  -26 80 .5 4
+;
+proc rsreg data=smell;
+model Odor = T R H / lackfit;
+run;
+
+/* 3d plot  */
+ods graphics on;
+proc rsreg data=smell plots(unpack)=surface(3d);
+model Odor = T R H;
+run;
+ods graphics off;
+
+/* 3d plot with given H-value */
+ods graphics on;
+proc rsreg data=smell plots(unpack)=surface(3d at(H=7.541050));
+model Odor = T R H;
+ods select 'T * R = Pred';
+run;
+ods graphics off;
+
+

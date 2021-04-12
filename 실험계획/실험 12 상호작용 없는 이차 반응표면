@@ -1,0 +1,97 @@
+data a ; 
+   input x1 x2  y; 
+   eta1= (x1-(43.0+1.6)/2) / ((43.0-1.6)/2) ;
+   eta2= (x2-(1357+816)/2) / ((1357-816)/2) ;
+cards;
+1.6 851 193
+15.5 816 230
+22.0 1058 172
+43.0 1201 91
+33.0 1357 113
+40.0 1115 125
+;
+run;
+
+proc print data=a; run;
+
+/*  d.f. of Error = 0  */
+proc rsreg data=a;
+model y = x1 x2 ;
+run;
+
+
+/* ===  Response Surface without the interaction term 
+          using eta1, eta2                                 ==== */
+data grid;
+do;
+	y= . ;
+	do eta1 = -1 to 1 by 0.05;
+		do eta2 = -1 to 1 by 0.05;
+			x1=((43.0-1.6)/2)*eta1 + ((43.0+1.6)/2);
+	    	x2=((1357-816)/2)*eta2+((1357+816)/2);
+			output;
+		end;
+	end;
+end;
+run;
+
+data grid2; set a grid;
+eta11 = eta1*eta1;
+eta22 = eta2*eta2;
+run;
+
+proc print data=grid2 ; run;
+
+proc reg data=grid2 ;
+	model y = eta1 eta2 eta11 eta22;
+	output out=gridout p=pred;
+run;
+data grid3; set grid2;
+x11= x1*x1;
+x22 = x2*x2;
+run;
+proc reg data=grid3 ;
+	model y = x1 x2 x11 x22;
+	output out=gridout p=pred;
+run;
+
+proc print data=gridout; run;
+
+
+proc g3d data=gridout;
+plot x1*x2=pred;
+run;
+
+/*=====  SAS Univ. Edition doesn't support proc g3d ====== 
+
+However,   "surfaceplotparm"  statement requires 
+
+... evenly spaced X, Y's .....
+
+*/
+
+
+data newgrid ; set gridout;
+if x1=1.6 then delete;
+if x1=15.5 then delete;
+if x1=22.0 then delete;
+if x1=43.0 then delete;
+if x1=33.0 then delete;
+if x1=40.0 then delete;
+run;
+
+ proc template;
+   define statgraph layoutoverlay3d;
+     begingraph;
+       entrytitle "Response Surface for X1 and X2";
+       layout overlay3d /   
+                          walldisplay=none cube=false;
+         surfaceplotparm x=x1 y=x2 z=pred /
+           surfacecolorgradient=density;
+       endlayout;
+     endgraph;
+   end;
+ run;
+ proc sgrender data=newgrid template=layoutoverlay3d;
+ run;
+
